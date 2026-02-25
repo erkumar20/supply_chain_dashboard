@@ -1,0 +1,4 @@
+supplier_id,supplier_name,allocation,lead_time,cost_per_unit,quality_rating
+S1,Alpha Metals,0.5,5,96,3.78
+S2,Beta Alloys,0.3,7,109,4.67
+S3,Gamma Steels,0.2,4,118,4.4
