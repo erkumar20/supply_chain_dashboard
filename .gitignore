@@ -1,0 +1,14 @@
+node_modules/
+venv/
+.DS_Store
+dist/
+build/
+*.log
+.env
+.env.*
+backend/exports/
+backend/reports/
+backend/alerts/
+.vscode/
+.idea/
+
