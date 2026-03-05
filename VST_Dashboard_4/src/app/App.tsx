@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import { CategoryProvider } from "./context/CategoryContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
+import { AppDataProvider } from "./context/AppDataContext";
 
 function AppContent() {
   const { isAuthenticated, login } = useAuth();
@@ -20,9 +21,11 @@ function AppContent() {
 
   return (
     <CategoryProvider>
-      <DataProvider>
-        <RouterProvider router={router} />
-      </DataProvider>
+      <AppDataProvider>
+        <DataProvider>
+          <RouterProvider router={router} />
+        </DataProvider>
+      </AppDataProvider>
     </CategoryProvider>
   );
 }

@@ -221,7 +221,7 @@ export default function AIAssistant() {
                 <span className="absolute bottom-[-2px] right-[-2px] w-3.5 h-3.5 bg-emerald-400 border-2 border-[#006847] rounded-full"></span>
               </div>
               <div>
-                <h3 className="font-bold text-lg tracking-tight">AbySmart AI</h3>
+                <h3 className="font-bold text-lg tracking-tight">VarnuevedAI</h3>
                 <p className="text-[10px] text-green-100 font-bold uppercase tracking-widest opacity-80">Intelligence Hub • v1.4</p>
               </div>
             </div>

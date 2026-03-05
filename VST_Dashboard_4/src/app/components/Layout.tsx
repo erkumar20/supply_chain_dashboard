@@ -144,7 +144,7 @@ export default function Layout() {
                   }
                 >
                   <Bot className="w-4 h-4" />
-                  <span className="font-medium text-sm">AbySmart AI</span>
+                  <span className="font-medium text-sm">VarnuevedAI</span>
                 </NavLink>
 
                 <NavLink

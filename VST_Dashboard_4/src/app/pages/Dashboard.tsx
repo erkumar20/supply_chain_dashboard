@@ -22,12 +22,32 @@ import {
 } from "../data/billOfMaterialsData";
 import { useCategory } from "../context/CategoryContext";
 import { useData } from "../context/DataContext";
+import { useAppData } from "../context/AppDataContext";
 import { items } from "../data/items";
 
 export default function Dashboard() {
   const { selectedCategory } = useCategory();
-  const [date, setDate] = useState<Date | undefined>(new Date(2026, 1, 24)); // Feb 24, 2026
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const {
+    dateRange,
+    setDateRange,
+    item1Variance,
+    item2Variance,
+    item3Variance,
+    item4Variance,
+    item5Variance,
+    item1Bom,
+    item2Bom,
+    item3Bom,
+    item4Bom,
+    item5Bom,
+    item1Price,
+    item2Price,
+    item3Price,
+    item4Price,
+    item5Price,
+    updateVarianceData
+  } = useAppData();
 
   const {
     customDataMap,
@@ -48,52 +68,51 @@ export default function Dashboard() {
   })();
 
   const getDashboardData = () => {
-    if (customDataMap && customDataMap[currentItemCode]) {
-      const itemInfo = items.find(i => i.itemCode === currentItemCode);
-      return {
-        name: itemInfo?.itemName || "Imported Item",
-        variance: customDataMap[currentItemCode],
-        bom: bomDataItem1,
-        price: billOfMaterialsPriceItem1
-      };
-    }
+    // We prioritize using the context-synced data which is reactive to dateRange.
+    // customDataMap is now handled globally via importSystemData in AppDataContext.
 
     switch (selectedCategory) {
+      case 'axel-gear':
+        return {
+          name: "Axel Gear CT85",
+          variance: item1Variance,
+          bom: item1Bom,
+          price: item1Price
+        };
       case 'fly-wheel':
         return {
           name: "FLY WHEEL",
-          variance: varianceDataItem2,
-          bom: bomDataItem2,
-          price: billOfMaterialsPriceItem2
+          variance: item2Variance,
+          bom: item2Bom,
+          price: item2Price
         };
       case 'final-drive':
         return {
           name: "Final Drive Gear",
-          variance: varianceDataItem3,
-          bom: bomDataItem3,
-          price: billOfMaterialsPriceItem1
+          variance: item3Variance,
+          bom: item3Bom,
+          price: item3Price
         };
       case 'gear-case':
         return {
           name: "GEAR CASE",
-          variance: varianceDataItem4,
-          bom: bomDataItem4,
-          price: billOfMaterialsPriceItem2
+          variance: item4Variance,
+          bom: item4Bom,
+          price: item4Price
         };
       case 'shaft-final':
         return {
-          name: "Shaft Final",
-          variance: varianceDataItem5,
-          bom: bomDataItem5,
-          price: billOfMaterialsPriceItem1
+          name: "Shaft Final Drive",
+          variance: item5Variance,
+          bom: item5Bom,
+          price: item5Price
         };
-      case 'axel-gear':
       default:
         return {
-          name: "AXEL GEAR CT85",
-          variance: varianceDataItem1,
-          bom: bomDataItem1,
-          price: billOfMaterialsPriceItem1
+          name: "Axel Gear CT85",
+          variance: item1Variance,
+          bom: item1Bom,
+          price: item1Price
         };
     }
   };
@@ -116,9 +135,10 @@ export default function Dashboard() {
     exportData(currentData.variance, currentData.name);
   };
 
-  const formatDate = () => {
-    if (!date) return "Select date";
-    return format(date, 'MMM d, yyyy');
+  const formatDateRange = () => {
+    if (!dateRange?.from) return "Select date range";
+    if (!dateRange.to) return format(dateRange.from, 'MMM d, yyyy');
+    return `${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}`;
   };
 
   return (
@@ -146,17 +166,17 @@ export default function Dashboard() {
             <PopoverTrigger asChild>
               <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 justify-start flex-1 sm:flex-none">
                 <Calendar className="w-4 h-4 text-gray-500" />
-                {formatDate()}
+                {formatDateRange()}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
               <CalendarComponent
-                mode="single"
-                selected={date}
-                onSelect={(date) => {
-                  setDate(date);
-                  if (date) {
-                    toast.success(`Date updated: ${format(date, 'MMM d, yyyy')}`);
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => {
+                  setDateRange(range);
+                  if (range?.from && range?.to) {
+                    toast.success(`Date range updated: ${format(range.from, 'MMM d')} - ${format(range.to, 'MMM d')}`);
                   }
                 }}
                 initialFocus
@@ -179,7 +199,11 @@ export default function Dashboard() {
         <VarianceTable
           data={currentData.variance}
           onDataUpdate={(updated) => {
-            updateCustomDataMapForCategory(currentItemCode, updated);
+            if (customDataMap && customDataMap[currentItemCode]) {
+              updateCustomDataMapForCategory(currentItemCode, updated);
+            } else {
+              updateVarianceData(currentItemCode, updated);
+            }
           }}
           itemName={currentData.name}
         />

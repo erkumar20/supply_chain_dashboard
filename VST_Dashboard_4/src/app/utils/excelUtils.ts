@@ -1,9 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { VarianceData } from '../data/mockData';
+import { calculateVarianceAndStatus } from './varianceCalculations';
 
-/**
- * Mapping configuration for SOB sheet
- */
 export const SOB_MAPPING = {
     supplier: "Vendor's account number",
     plannedAllocation: "Quota",
@@ -11,22 +9,66 @@ export const SOB_MAPPING = {
     itemName: "Material Number",
 };
 
-/**
- * Mapping configuration for GRN sheet
- */
 export const GRN_MAPPING = {
     supplier: "SUPPLIER NAME",
     actualQuantity: "RECEIVED QTY",
     plannedPrice: "PO PRICE",
     itemCode: "MATERIAL NO",
     itemName: "MATERIAL DESC",
+    invoiceNumber: "SUPPLIER INVOICE NUMBER",
+    date: "GRN DATE",
+    grnNumber: "GRN NUMBER",
+};
+
+/**
+ * Convert Excel serial date to ISO string (YYYY-MM-DD)
+ */
+export const excelDateToISO = (serial: any): string => {
+    if (!serial || isNaN(Number(serial))) return new Date().toISOString().split('T')[0];
+    const date = new Date((Number(serial) - 25569) * 86400 * 1000);
+    return date.toISOString().split('T')[0];
 };
 
 /**
  * Export data to Excel
  */
-export const exportToExcel = (data: any[], fileName: string) => {
-    const worksheet = XLSX.utils.json_to_sheet(data);
+export const exportToExcel = (data: VarianceData[], fileName: string) => {
+    if (!data || data.length === 0) return;
+
+    // 1. Transform data for display
+    const formattedData = data.map(row => ({
+        'Supplier': row.supplier,
+        'Planned Allocation (%)': row.plannedAllocation,
+        'Planned Quantity': row.plannedQuantity,
+        'Planned Price': row.plannedPrice,
+        'Actual Allocation (%)': row.actualAllocation,
+        'Actual Quantity': row.actualQuantity,
+        'Actual Price': row.actualPrice,
+        'Variance (%)': row.variance,
+        'Status': row.status === 'low' ? 'Healthy' : row.status === 'medium' ? 'Warning' : 'Critical'
+    }));
+
+    // 2. Calculate Totals
+    const totalPlannedAllocation = data.reduce((sum, r) => sum + (r.plannedAllocation || 0), 0);
+    const totalActualAllocation = data.reduce((sum, r) => sum + (r.actualAllocation || 0), 0);
+    const totalVariance = totalPlannedAllocation - totalActualAllocation;
+
+    const totals = {
+        'Supplier': 'Total',
+        'Planned Allocation (%)': Number(totalPlannedAllocation.toFixed(2)),
+        'Planned Quantity': data.reduce((sum, r) => sum + (r.plannedQuantity || 0), 0),
+        'Planned Price': Number(data.reduce((sum, r) => sum + (r.plannedPrice || 0), 0).toFixed(2)),
+        'Actual Allocation (%)': Number(totalActualAllocation.toFixed(2)),
+        'Actual Quantity': data.reduce((sum, r) => sum + (r.actualQuantity || 0), 0),
+        'Actual Price': Number(data.reduce((sum, r) => sum + (r.actualPrice || 0), 0).toFixed(2)),
+        'Variance (%)': Number(totalVariance.toFixed(2)),
+        'Status': ''
+    };
+
+    // 3. Combine data and totals
+    const finalData = [...formattedData, totals];
+
+    const worksheet = XLSX.utils.json_to_sheet(finalData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
     XLSX.writeFile(workbook, `${fileName}.xlsx`);
@@ -46,7 +88,7 @@ export const parseExcelAndMap = async (file: File): Promise<{
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                const result: any = { sob: [], grn: [] };
+                const result: { sob: any[], grn: any[] } = { sob: [], grn: [] };
 
                 workbook.SheetNames.forEach(name => {
                     const lowerName = name.toLowerCase().trim();
@@ -56,19 +98,23 @@ export const parseExcelAndMap = async (file: File): Promise<{
                         result.sob = sheetData;
                     } else if (lowerName.includes('grn')) {
                         result.grn = sheetData;
-                    } else if (workbook.SheetNames.length === 1) {
-                        // If it's a single sheet (like a CSV), try to detect if it's SOB or GRN by columns
-                        const firstRow: any = sheetData[0];
-                        if (firstRow && (firstRow[SOB_MAPPING.itemCode] || firstRow["Quota"])) {
-                            result.sob = sheetData;
-                        } else if (firstRow && (firstRow[GRN_MAPPING.itemCode] || firstRow["RECEIVED QTY"])) {
-                            result.grn = sheetData;
-                        } else {
-                            // Fallback if autodetection fails for single sheet
-                            result.sob = sheetData;
-                        }
                     }
                 });
+
+                // Fallback: If sheets not found by name, try detecting by columns in all sheets
+                if (result.sob.length === 0 || result.grn.length === 0) {
+                    workbook.SheetNames.forEach(name => {
+                        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[name]);
+                        if (sheetData.length > 0) {
+                            const firstRow: any = sheetData[0];
+                            if (!result.sob.length && (firstRow[SOB_MAPPING.itemCode] || firstRow["Quota"])) {
+                                result.sob = sheetData;
+                            } else if (!result.grn.length && (firstRow[GRN_MAPPING.itemCode] || firstRow["RECEIVED QTY"])) {
+                                result.grn = sheetData;
+                            }
+                        }
+                    });
+                }
 
                 resolve(result);
             } catch (error) {
@@ -126,6 +172,8 @@ export const mapToVarianceDataGroups = (sobData: any[], grnData: any[]): Record<
 
             const avgPrice = actual.count > 0 ? (actual.price / actual.count) : (Number(row[GRN_MAPPING.plannedPrice]) || 0);
 
+            const { status } = calculateVarianceAndStatus(plannedAllocation, actualAllocation);
+
             return {
                 id: `${materialCode}-${index + 1}`,
                 supplier: supplier,
@@ -135,8 +183,8 @@ export const mapToVarianceDataGroups = (sobData: any[], grnData: any[]): Record<
                 actualAllocation,
                 actualQuantity,
                 actualPrice: Number(avgPrice.toFixed(2)),
-                variance: plannedAllocation - actualAllocation,
-                status: Math.abs(plannedAllocation - actualAllocation) > 10 ? 'high' : Math.abs(plannedAllocation - actualAllocation) > 5 ? 'medium' : 'low',
+                variance: Number((plannedAllocation - actualAllocation).toFixed(2)),
+                status,
             };
         });
     });

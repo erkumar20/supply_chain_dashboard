@@ -63,7 +63,7 @@ export default function DataStorage() {
 
                                 const ext = file.name.split('.').pop()?.toLowerCase();
                                 if (['pdf', 'doc', 'docx'].includes(ext || '')) {
-                                    toast.info(`${file.name} received. This document type will be processed by AbySmart AI (Backend required).`, {
+                                    toast.info(`${file.name} received. This document type will be processed by VarnuevedAI (Backend required).`, {
                                         duration: 5000
                                     });
                                 } else {

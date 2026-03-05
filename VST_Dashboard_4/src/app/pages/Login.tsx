@@ -149,7 +149,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       {/* Quick Help */}
       <div className="fixed bottom-8 left-0 right-0 text-center">
         <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.2em]">
-          Powered by AbySmart AI Intelligence
+          Powered by VarnueAI Business Solutions
         </p>
       </div>
     </div>

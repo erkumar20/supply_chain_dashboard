@@ -351,3 +351,6 @@ export const yearlyPriceData: PriceHistoryData[] = [
     shaftFinal: 6925,
   },
 ];
+export const billOfMaterialsPriceItem3: BillOfMaterialsPriceItem[] = [...billOfMaterialsPriceItem1];
+export const billOfMaterialsPriceItem4: BillOfMaterialsPriceItem[] = [...billOfMaterialsPriceItem2];
+export const billOfMaterialsPriceItem5: BillOfMaterialsPriceItem[] = [...billOfMaterialsPriceItem1];

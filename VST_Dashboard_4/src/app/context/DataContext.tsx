@@ -1,12 +1,14 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { toast } from 'sonner';
 import { type VarianceData } from '../data/mockData';
 import { parseExcelAndMap, mapToVarianceDataGroups, exportToExcel } from '../utils/excelUtils';
 import { format } from 'date-fns';
+import { useAppData } from './AppDataContext';
 
 interface DataContextType {
     customDataMap: Record<string, VarianceData[]> | null;
     pendingDataMap: Record<string, VarianceData[]> | null;
+    pendingRaw: { sob: any[], grn: any[] } | null;
     importFileName: string;
     isReviewOpen: boolean;
     setIsReviewOpen: (open: boolean) => void;
@@ -20,8 +22,10 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { importSystemData, resetAllData } = useAppData();
     const [customDataMap, setCustomDataMap] = useState<Record<string, VarianceData[]> | null>(null);
     const [pendingDataMap, setPendingDataMap] = useState<Record<string, VarianceData[]> | null>(null);
+    const [pendingRaw, setPendingRaw] = useState<{ sob: any[], grn: any[] } | null>(null);
     const [importFileName, setImportFileName] = useState("");
     const [isReviewOpen, setIsReviewOpen] = useState(false);
 
@@ -32,19 +36,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const mappedGroups = mapToVarianceDataGroups(sob, grn);
 
             setPendingDataMap(mappedGroups);
+            setPendingRaw({ sob, grn });
             setImportFileName(file.name);
             setIsReviewOpen(true);
-
-            // Also upload to backend to sync AI Assistant
-            const formData = new FormData();
-            formData.append('file', file);
-
-            fetch('http://127.0.0.1:8001/api/upload-dataset', {
-                method: 'POST',
-                body: formData,
-            }).then(res => {
-                if (res.ok) console.log("Backend dataset synced");
-            }).catch(err => console.error("Backend sync failed", err));
 
             toast.dismiss();
             toast.success("File parsed successfully. Review your data.");
@@ -56,18 +50,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const confirmImport = () => {
-        if (pendingDataMap) {
+        if (pendingRaw) {
+            importSystemData(pendingRaw.sob, pendingRaw.grn);
             setCustomDataMap(pendingDataMap);
             setIsReviewOpen(false);
-            toast.success("Data applied successfully!");
+            setPendingRaw(null);
+            toast.success("Data integrated into system storage!");
         }
     };
 
     const clearData = () => {
+        resetAllData();
         setCustomDataMap(null);
         setPendingDataMap(null);
         setImportFileName("");
-        toast.success("Data reset to defaults.");
     };
 
     const exportData = (data: VarianceData[], name: string) => {
@@ -85,6 +81,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <DataContext.Provider value={{
             customDataMap,
             pendingDataMap,
+            pendingRaw,
             importFileName,
             isReviewOpen,
             setIsReviewOpen,

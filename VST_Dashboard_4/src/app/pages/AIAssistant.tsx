@@ -20,7 +20,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Welcome to the **AbySmart AI Analytics Hub**. I have successfully loaded your supply chain dataset. You can ask me to summarize performance, compare suppliers, or generate trend reports. What can I analyze for you today?",
+      text: "Welcome to the **VarnuevedAI Analytics Hub**. I have successfully loaded your supply chain dataset. You can ask me to summarize performance, compare suppliers, or generate trend reports. What can I analyze for you today?",
       sender: "ai",
       timestamp: new Date(),
     },
@@ -208,7 +208,7 @@ export default function AIAssistant() {
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
                   <Sparkles className="w-4 h-4 text-green-300" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight">AbySmart AI</h2>
+                <h2 className="text-xl font-bold tracking-tight">VarnuevedAI</h2>
               </div>
               <p className="text-green-50 text-[11px] leading-relaxed opacity-80 font-medium">
                 Your intelligent companion for multi-dimensional supply chain analysis.
@@ -368,7 +368,7 @@ export default function AIAssistant() {
               </div>
             </div>
             <p className="text-[9px] text-center text-gray-400 mt-5 font-black uppercase tracking-[0.2em] opacity-60">
-              abySmart Analytics • Secure Engine v1.4
+              VarnuevedAI Analytics • Secure Engine v1.4
             </p>
           </div>
         </div>
