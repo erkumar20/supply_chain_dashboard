@@ -73,7 +73,7 @@ export default function AIAssistant() {
     setIsTyping(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8001/api/chat', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export default function AIAssistant() {
       toast.error("AI Assistant is offline.");
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm having trouble connecting to the analytics engine. Please ensure the backend server is running on port 8001.",
+        text: `I'm having trouble connecting to the analytics engine. Please ensure the backend server is running on ${import.meta.env.VITE_API_BASE_URL}.`,
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -151,11 +151,11 @@ export default function AIAssistant() {
   const renderFileAction = (msg: Message) => {
     let url = "";
     if (msg.xlsx_path) {
-      url = `http://127.0.0.1:8001/api/reports/download-excel?path=${encodeURIComponent(msg.xlsx_path)}`;
+      url = `${import.meta.env.VITE_API_BASE_URL}/api/reports/download-excel?path=${encodeURIComponent(msg.xlsx_path)}`;
     } else if (msg.pdf_path) {
-      url = `http://127.0.0.1:8001/api/reports/download?path=${encodeURIComponent(msg.pdf_path)}`;
+      url = `${import.meta.env.VITE_API_BASE_URL}/api/reports/download?path=${encodeURIComponent(msg.pdf_path)}`;
     } else if (msg.download_url) {
-      const base = msg.download_url.startsWith('http') ? '' : 'http://127.0.0.1:8001';
+      const base = msg.download_url.startsWith('http') ? '' : import.meta.env.VITE_API_BASE_URL;
       url = `${base}${msg.download_url}`;
     }
 
