@@ -13,3 +13,18 @@ __pycache__/
 
 # Logs
 *.log
+
+# Python virtual environments
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated reports, exports, and alerts
+reports/
+alerts/
+exports/
+
+# OS files
+.DS_Store
