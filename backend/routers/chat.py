@@ -72,6 +72,8 @@ def detect_intent(query):
         return "compare"
     if "excel" in q or "spreadsheet" in q or "download" in q or "export" in q:
         return "excel"
+    if "table" in q or "grid" in q:
+        return "table"
     if "trend" in q or "over time" in q or "moving average" in q or "rolling average" in q:
         return "trend"
     if "top" in q or "most" in q or "highest" in q or "lowest" in q:
@@ -665,6 +667,41 @@ def handle_report(df, suppliers):
         "download_hint": f"GET /api/reports/download?path={pdf_path}"
     }
 
+def handle_table(df, suppliers, materials):
+    if df.empty:
+        return {"response": "No data available for this table."}
+        
+    group_col = 'SUPPLIER NAME'
+    if suppliers and not materials:
+        group_col = 'MATERIAL DESC'
+        
+    table_df = df.groupby(group_col).agg({
+        'RECEIVED QTY': 'sum',
+        'ACCEPTED QTY': 'sum',
+        'PO PRICE': 'mean'
+    }).reset_index()
+    
+    table_df = table_df.sort_values(by='RECEIVED QTY', ascending=False).head(15)
+    
+    table_df['RECEIVED QTY'] = table_df['RECEIVED QTY'].apply(lambda x: f"{int(x):,}")
+    table_df['ACCEPTED QTY'] = table_df['ACCEPTED QTY'].apply(lambda x: f"{int(x):,}")
+    table_df['PO PRICE'] = table_df['PO PRICE'].apply(lambda x: f"₹{x:,.2f}")
+        
+    markdown_table = f"| {group_col} | Received Qty | Accepted Qty | Avg PO Price |\n"
+    markdown_table += "|---|---|---|---|\n"
+    
+    for _, row in table_df.iterrows():
+        name = str(row[group_col]).replace('|', '')  # prevent markdown breaking
+        markdown_table += f"| {name} | {row['RECEIVED QTY']} | {row['ACCEPTED QTY']} | {row['PO PRICE']} |\n"
+        
+    title = f"📋 **Comparison Table**"
+    if materials:
+        title += f" for **{materials[0]}**"
+    elif suppliers:
+        title += f" for **{suppliers[0]}**"
+        
+    return {"response": f"{title}\n\n{markdown_table}"}
+
 # --- Main Chat Endpoint ---
 @router.post("/chat")
 def chat(request: ChatRequest):
@@ -684,7 +721,7 @@ def chat(request: ChatRequest):
         df = df[df['SUPPLIER NAME'] == suppliers[0]]
         
     # Also filter by material for trends if specified
-    if materials and intent == "trend":
+    if materials and intent in ("trend", "table"):
         # Match against either description or number
         m_list = [m.lower() for m in materials]
         df = df[df['MATERIAL DESC'].str.lower().isin(m_list) | 
@@ -732,6 +769,9 @@ def chat(request: ChatRequest):
     
     elif intent == "report":
         return handle_report(get_grn_df(), suppliers)
+        
+    elif intent == "table":
+        return handle_table(df, suppliers, materials)
     
     elif intent == "excel":
         return handle_excel(get_grn_df(), suppliers, materials)
